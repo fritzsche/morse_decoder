@@ -9,7 +9,7 @@ class Decoder {
         // getUserMedia need to be called on a navigator object
         navigator.getUserMedia  = (navigator.getUserMedia || navigator.webkitGetUserMedia ||
             navigator.mozGetUserMedia || navigator.msGetUserMedia)   
-        if (navigator.getUserMedia ) alert("No UserMedia");
+        if (!navigator.getUserMedia ) alert("No UserMedia");
         navigator.getUserMedia( { audio: true, video: false },
             stream => {
                 var audioSource = this._ctx.createMediaStreamSource(stream);
