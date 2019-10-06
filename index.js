@@ -15,28 +15,28 @@ class Decoder {
         var graphicWidth = parseInt(getComputedStyle(canvasElement).width, 10);
         var graphicHeight = parseInt(getComputedStyle(canvasElement).height, 10);
 
-        console.log(`GraphicsHeight: ${ graphicHeight }` );
-        console.log(`GraphicsWidth: ${ graphicWidth }`)
+        console.log(`GraphicsHeight: ${graphicHeight}`);
+        console.log(`GraphicsWidth: ${graphicWidth}`)
 
         gc.fillStyle = '#000000';
 
         gc.fillRect(0, 0, graphicWidth, graphicHeight);
         var pixel = gc.createImageData(1, 1);
         pixel.data[3] = 255;
-        var draw = ( () => {
+        var draw = (() => {
             var slideImage = gc.getImageData(0, 0, graphicWidth - 1, graphicHeight);
             gc.putImageData(slideImage, 1, 0);
 
             analyserNode.getFloatFrequencyData(fftData);
             for (var i = 0; i < graphicHeight; ++i) {
-                var n = Math.min(Math.max((fftData[i] + 80) * 4, 0), 255);            
+                var n = Math.min(Math.max((fftData[i] + 80) * 4, 0), 255);
                 pixel.data[0] = n;
                 pixel.data[1] = n;
                 pixel.data[2] = n;
                 gc.putImageData(pixel, 0, graphicHeight - i);
-              }
+            }
             requestAnimationFrame(draw);
-        } );
+        });
         draw();
     }
 
@@ -48,9 +48,50 @@ class Decoder {
         navigator.getUserMedia = (navigator.getUserMedia || navigator.webkitGetUserMedia ||
             navigator.mozGetUserMedia || navigator.msGetUserMedia)
         let onGetUserMedia = (stream => {
-             let audioSource = this._ctx.createMediaStreamSource(stream);
-             this.drawSpectrum(audioSource);
+            let audioSource = this._ctx.createMediaStreamSource(stream);
+            /*
+            let biquadFilter = this._ctx.createBiquadFilter();
+            biquadFilter.type = "bandpass";
+            biquadFilter.Q.setValueAtTime(7, this._ctx.currentTime); 
+            biquadFilter.frequency.setValueAtTime(500, this._ctx.currentTime);
+*/
+            let lowpassFilter = this._ctx.createBiquadFilter();
+            let highpassFilter = this._ctx.createBiquadFilter();
+            highpassFilter.frequency.setValueAtTime(400, this._ctx.currentTime);
+            highpassFilter.Q.setValueAtTime(1, this._ctx.currentTime); 
+            highpassFilter.type = "highpass";
+            lowpassFilter.Q.setValueAtTime(1, this._ctx.currentTime); 
+            lowpassFilter.frequency.setValueAtTime(900, this._ctx.currentTime);
+            lowpassFilter.type = "lowpass";
 
+
+            audioSource.connect(lowpassFilter);
+            lowpassFilter.connect(highpassFilter);
+            
+            this.drawSpectrum(highpassFilter);
+
+
+            let scriptNode = this._ctx.createScriptProcessor(4096, 1, 1);
+
+
+            console.log(`ScriptButterSize: ${scriptNode.bufferSize}`);
+
+
+
+
+            highpassFilter.connect(scriptNode);
+            scriptNode.connect(this._ctx.destination);
+
+            scriptNode.onaudioprocess = audioProcessingEvent => {
+                // we just support mono and read the first channel
+                let inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                var maxAmp = 0;
+                for (let sample = 0; sample < audioProcessingEvent.inputBuffer.length; sample++) {
+                    maxAmp = Math.max(maxAmp, inputData[sample]);
+                }
+                if (maxAmp > 0.2)
+                    console.log(`AudioEvent:  ${audioProcessingEvent.inputBuffer.numberOfChannels} channel / max ${maxAmp}`);
+            }
         });
         let onGetUserMediaError = (err => { console.error('Error connecting: ' + err); });
         if (navigator.mediaDevices) {
