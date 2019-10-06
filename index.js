@@ -55,19 +55,27 @@ class Decoder {
             biquadFilter.Q.setValueAtTime(7, this._ctx.currentTime); 
             biquadFilter.frequency.setValueAtTime(500, this._ctx.currentTime);
 */
+
             let lowpassFilter = this._ctx.createBiquadFilter();
             let highpassFilter = this._ctx.createBiquadFilter();
-            highpassFilter.frequency.setValueAtTime(400, this._ctx.currentTime);
-            highpassFilter.Q.setValueAtTime(1, this._ctx.currentTime); 
+            highpassFilter.frequency.setValueAtTime(200, this._ctx.currentTime);
+            highpassFilter.Q.setValueAtTime(0.707, this._ctx.currentTime); 
             highpassFilter.type = "highpass";
-            lowpassFilter.Q.setValueAtTime(1, this._ctx.currentTime); 
-            lowpassFilter.frequency.setValueAtTime(900, this._ctx.currentTime);
+            lowpassFilter.Q.setValueAtTime(0.707, this._ctx.currentTime); 
+            lowpassFilter.frequency.setValueAtTime(2000, this._ctx.currentTime);
             lowpassFilter.type = "lowpass";
+  /*          
+            let peakingFilter = this._ctx.createBiquadFilter();
+            peakingFilter.Q.setValueAtTime(2, this._ctx.currentTime); 
+            peakingFilter.frequency.setValueAtTime(600, this._ctx.currentTime);
+            peakingFilter.gain.setValueAtTime(40, this._ctx.currentTime);
+            peakingFilter.type = "peaking";
 
-
+            
+            audioSource.connect(peakingFilter); */
             audioSource.connect(lowpassFilter);
             lowpassFilter.connect(highpassFilter);
-            
+           
             this.drawSpectrum(highpassFilter);
 
 
