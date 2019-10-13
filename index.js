@@ -49,13 +49,7 @@ class Decoder {
             navigator.mozGetUserMedia || navigator.msGetUserMedia)
         let onGetUserMedia = (stream => {
             let audioSource = this._ctx.createMediaStreamSource(stream);
-            /*
-            let biquadFilter = this._ctx.createBiquadFilter();
-            biquadFilter.type = "bandpass";
-            biquadFilter.Q.setValueAtTime(7, this._ctx.currentTime); 
-            biquadFilter.frequency.setValueAtTime(500, this._ctx.currentTime);
-*/
-
+/*
             let lowpassFilter = this._ctx.createBiquadFilter();
             let highpassFilter = this._ctx.createBiquadFilter();
             highpassFilter.frequency.setValueAtTime(200, this._ctx.currentTime);
@@ -64,33 +58,40 @@ class Decoder {
             lowpassFilter.Q.setValueAtTime(0.707, this._ctx.currentTime); 
             lowpassFilter.frequency.setValueAtTime(2000, this._ctx.currentTime);
             lowpassFilter.type = "lowpass";
-  /*          
-            let peakingFilter = this._ctx.createBiquadFilter();
-            peakingFilter.Q.setValueAtTime(2, this._ctx.currentTime); 
-            peakingFilter.frequency.setValueAtTime(600, this._ctx.currentTime);
-            peakingFilter.gain.setValueAtTime(40, this._ctx.currentTime);
-            peakingFilter.type = "peaking";
+*/
 
-            
-            audioSource.connect(peakingFilter); */
+
+/*
             audioSource.connect(lowpassFilter);
             lowpassFilter.connect(highpassFilter);
            
             this.drawSpectrum(highpassFilter);
+*/
 
-
-            let scriptNode = this._ctx.createScriptProcessor(4096, 1, 1);
-
+            let scriptNode = this._ctx.createScriptProcessor(256, 1, 1);
 
             console.log(`ScriptButterSize: ${scriptNode.bufferSize}`);
 
 
+            var analyserNode = this._ctx.createAnalyser();
+            audioSource.connect(analyserNode);
+            analyserNode.fftSize = 2048;
+            analyserNode.smoothingTimeConstant = 1;
 
 
-            highpassFilter.connect(scriptNode);
+            var fftData = new Float32Array(analyserNode.frequencyBinCount);
+
+            analyserNode.connect(scriptNode);
+
+
+
             scriptNode.connect(this._ctx.destination);
-
+            var i = 0;
             scriptNode.onaudioprocess = audioProcessingEvent => {
+                i += 1;
+                analyserNode.getFloatFrequencyData(fftData);
+                if (i % 100 == 0) console.log( i );
+/*                
                 // we just support mono and read the first channel
                 let inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
                 var maxAmp = 0;
@@ -99,6 +100,7 @@ class Decoder {
                 }
                 if (maxAmp > 0.2)
                     console.log(`AudioEvent:  ${audioProcessingEvent.inputBuffer.numberOfChannels} channel / max ${maxAmp}`);
+                    */
             }
         });
         let onGetUserMediaError = (err => { console.error('Error connecting: ' + err); });
