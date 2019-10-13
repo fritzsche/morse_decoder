@@ -68,15 +68,15 @@ class Decoder {
             this.drawSpectrum(highpassFilter);
 */
 
-            let scriptNode = this._ctx.createScriptProcessor(256, 1, 1);
+            let scriptNode = this._ctx.createScriptProcessor(1024, 1, 1);
 
             console.log(`ScriptButterSize: ${scriptNode.bufferSize}`);
 
 
             var analyserNode = this._ctx.createAnalyser();
             audioSource.connect(analyserNode);
-            analyserNode.fftSize = 2048;
-            analyserNode.smoothingTimeConstant = 1;
+            analyserNode.fftSize = 1024;
+            analyserNode.smoothingTimeConstant = 0;
 
 
             var fftData = new Float32Array(analyserNode.frequencyBinCount);
@@ -89,8 +89,19 @@ class Decoder {
             var i = 0;
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 i += 1;
+                var num = -Infinity;
+                var b = 0;
                 analyserNode.getFloatFrequencyData(fftData);
-                if (i % 100 == 0) console.log( i );
+                for (var n = 13;n<22;n++) {    
+                  if (fftData[n] > num) { num = fftData[n]; b = n ;}
+                }
+   //             if (i % 2 == 0) {
+          //          console.log( i ); 
+                  if (num > -30 ) {
+                    console.log( num );
+                    console.log(b);
+    //            }
+}
 /*                
                 // we just support mono and read the first channel
                 let inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
