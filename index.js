@@ -49,24 +49,24 @@ class Decoder {
             navigator.mozGetUserMedia || navigator.msGetUserMedia)
         let onGetUserMedia = (stream => {
             let audioSource = this._ctx.createMediaStreamSource(stream);
-/*
-            let lowpassFilter = this._ctx.createBiquadFilter();
-            let highpassFilter = this._ctx.createBiquadFilter();
-            highpassFilter.frequency.setValueAtTime(200, this._ctx.currentTime);
-            highpassFilter.Q.setValueAtTime(0.707, this._ctx.currentTime); 
-            highpassFilter.type = "highpass";
-            lowpassFilter.Q.setValueAtTime(0.707, this._ctx.currentTime); 
-            lowpassFilter.frequency.setValueAtTime(2000, this._ctx.currentTime);
-            lowpassFilter.type = "lowpass";
-*/
+            /*
+                        let lowpassFilter = this._ctx.createBiquadFilter();
+                        let highpassFilter = this._ctx.createBiquadFilter();
+                        highpassFilter.frequency.setValueAtTime(200, this._ctx.currentTime);
+                        highpassFilter.Q.setValueAtTime(0.707, this._ctx.currentTime); 
+                        highpassFilter.type = "highpass";
+                        lowpassFilter.Q.setValueAtTime(0.707, this._ctx.currentTime); 
+                        lowpassFilter.frequency.setValueAtTime(2000, this._ctx.currentTime);
+                        lowpassFilter.type = "lowpass";
+            */
 
 
-/*
-            audioSource.connect(lowpassFilter);
-            lowpassFilter.connect(highpassFilter);
-           
-            this.drawSpectrum(highpassFilter);
-*/
+            /*
+                        audioSource.connect(lowpassFilter);
+                        lowpassFilter.connect(highpassFilter);
+                       
+                        this.drawSpectrum(highpassFilter);
+            */
 
             let scriptNode = this._ctx.createScriptProcessor(1024, 1, 1);
 
@@ -87,31 +87,50 @@ class Decoder {
 
             scriptNode.connect(this._ctx.destination);
             var i = 0;
+            var toneIsOn = false;
+            var lastTime = this._ctx.currentTime;
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 i += 1;
-                var num = -Infinity;
-                var b = 0;
+                var currentToneIsOn = false;
+                var highestValue = -Infinity;
+                var highestPosition = 0;
                 analyserNode.getFloatFrequencyData(fftData);
-                for (var n = 13;n<22;n++) {    
-                  if (fftData[n] > num) { num = fftData[n]; b = n ;}
+                for (var n = 13; n < 20; n++) {
+                    if (fftData[n] > highestValue) { highestValue = fftData[n]; highestPosition = n; }
                 }
-   //             if (i % 2 == 0) {
-          //          console.log( i ); 
-                  if (num > -30 ) {
-                    console.log( num );
-                    console.log(b);
-    //            }
-}
-/*                
-                // we just support mono and read the first channel
-                let inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                var maxAmp = 0;
-                for (let sample = 0; sample < audioProcessingEvent.inputBuffer.length; sample++) {
-                    maxAmp = Math.max(maxAmp, inputData[sample]);
+                //             if (i % 2 == 0) {
+                //          console.log( i ); 
+                if (highestValue > -30) {
+                    currentToneIsOn = true;
+
+                    //            }
                 }
-                if (maxAmp > 0.2)
-                    console.log(`AudioEvent:  ${audioProcessingEvent.inputBuffer.numberOfChannels} channel / max ${maxAmp}`);
-                    */
+
+                if (currentToneIsOn != toneIsOn) {
+                    if (!currentToneIsOn) {
+                        console.log(`On ${ this._ctx.currentTime - lastTime }`)                      
+                    } else {
+                        console.log(`Off ${ this._ctx.currentTime - lastTime }`) 
+                    }
+
+
+                    //         console.log(highestValue);
+                    //        console.log(highestPosition);
+                    toneIsOn = !toneIsOn;
+
+                    lastTime = this._ctx.currentTime;
+                }
+
+                /*                
+                                // we just support mono and read the first channel
+                                let inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                                var maxAmp = 0;
+                                for (let sample = 0; sample < audioProcessingEvent.inputBuffer.length; sample++) {
+                                    maxAmp = Math.max(maxAmp, inputData[sample]);
+                                }
+                                if (maxAmp > 0.2)
+                                    console.log(`AudioEvent:  ${audioProcessingEvent.inputBuffer.numberOfChannels} channel / max ${maxAmp}`);
+                                    */
             }
         });
         let onGetUserMediaError = (err => { console.error('Error connecting: ' + err); });
