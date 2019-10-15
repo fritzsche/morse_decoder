@@ -67,19 +67,29 @@ class Decoder {
                        
                         this.drawSpectrum(highpassFilter);
             */
-
-            let scriptNode = this._ctx.createScriptProcessor(1024, 1, 1);
+            let bufferSize = 512;
+            let scriptNode = this._ctx.createScriptProcessor(bufferSize, 1, 1);
 
             console.log(`ScriptButterSize: ${scriptNode.bufferSize}`);
 
 
             var analyserNode = this._ctx.createAnalyser();
             audioSource.connect(analyserNode);
-            analyserNode.fftSize = 1024;
+            analyserNode.fftSize = bufferSize;
             analyserNode.smoothingTimeConstant = 0;
 
 
             var fftData = new Float32Array(analyserNode.frequencyBinCount);
+            let frequencyBinCount = analyserNode.frequencyBinCount;
+            let sampleRate = this._ctx.sampleRate;
+            let binSize = (sampleRate/2)/frequencyBinCount;
+            let startBin = Math.floor(  500 / binSize );
+            let endBin = Math.ceil( 900 / binSize );
+
+            console.log(`frequencyBinCount: ${frequencyBinCount}`);
+            console.log(`sampleRate: ${sampleRate}`);
+            console.log(`binSize: ${ binSize }Hz`);
+            console.log(`bufferSize: ${ bufferSize / sampleRate }`);
 
             analyserNode.connect(scriptNode);
 
@@ -89,28 +99,35 @@ class Decoder {
             var i = 0;
             var toneIsOn = false;
             var lastTime = this._ctx.currentTime;
+
+            var numBin = 0;
+            var sumBin = 0;
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 i += 1;
                 var currentToneIsOn = false;
                 var highestValue = -Infinity;
-                var highestPosition = 0;
+                var highestBin = 0;
+                
                 analyserNode.getFloatFrequencyData(fftData);
-                for (var n = 13; n < 20; n++) {
-                    if (fftData[n] > highestValue) { highestValue = fftData[n]; highestPosition = n; }
+                for (var n = startBin; n < endBin; n++) {
+                    if (fftData[n] > highestValue) { highestValue = fftData[n]; highestBin = n; }
                 }
-                //             if (i % 2 == 0) {
-                //          console.log( i ); 
+
                 if (highestValue > -30) {
                     currentToneIsOn = true;
-
-                    //            }
+                    numBin += 1;
+                    sumBin += highestBin;
                 }
 
                 if (currentToneIsOn != toneIsOn) {
                     if (!currentToneIsOn) {
-                        console.log(`On ${ this._ctx.currentTime - lastTime }`)                      
+                        var bin = sumBin / numBin;
+                        console.log(`On ${ this._ctx.currentTime - lastTime } / Freq: ${ bin * binSize }Hz / ${ bin }`)     
+                        numBin = 0; 
+                        sumBin = 0;
                     } else {
                         console.log(`Off ${ this._ctx.currentTime - lastTime }`) 
+
                     }
 
 
