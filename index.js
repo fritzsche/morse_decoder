@@ -67,7 +67,7 @@ class Decoder {
                        
                         this.drawSpectrum(highpassFilter);
             */
-            let bufferSize = 512;
+            let bufferSize = 1024;
             let scriptNode = this._ctx.createScriptProcessor(bufferSize, 1, 1);
 
             console.log(`ScriptButterSize: ${scriptNode.bufferSize}`);
@@ -82,15 +82,16 @@ class Decoder {
             var fftData = new Float32Array(analyserNode.frequencyBinCount);
             let frequencyBinCount = analyserNode.frequencyBinCount;
             let sampleRate = this._ctx.sampleRate;
-            let binSize = (sampleRate/2)/frequencyBinCount;
-            let startBin = Math.floor(  500 / binSize );
-            let endBin = Math.ceil( 900 / binSize );
+            let binSize = (sampleRate / 2) / frequencyBinCount;
+            let startBin = Math.floor(500 / binSize);
+            let endBin = Math.ceil(900 / binSize);
 
             console.log(`frequencyBinCount: ${frequencyBinCount}`);
             console.log(`sampleRate: ${sampleRate}`);
-            console.log(`binSize: ${ binSize }Hz`);
-            console.log(`bufferSize: ${ bufferSize / sampleRate }`);
-
+            console.log(`binSize: ${binSize}Hz`);
+            console.log(`bufferSize: ${bufferSize / sampleRate}`);
+            console.log(`minDecibels ${ analyserNode.minDecibels }`);
+            console.log(`maxDecibels ${ analyserNode.maxDecibels }`);
             analyserNode.connect(scriptNode);
 
 
@@ -102,12 +103,16 @@ class Decoder {
 
             var numBin = 0;
             var sumBin = 0;
+
+
+            var minVal = Infinity;
+            var maxVal = -Infinity;
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 i += 1;
                 var currentToneIsOn = false;
                 var highestValue = -Infinity;
                 var highestBin = 0;
-                
+
                 analyserNode.getFloatFrequencyData(fftData);
                 for (var n = startBin; n < endBin; n++) {
                     if (fftData[n] > highestValue) { highestValue = fftData[n]; highestBin = n; }
@@ -118,16 +123,21 @@ class Decoder {
                     numBin += 1;
                     sumBin += highestBin;
                 }
-
+                if (highestValue == -Infinity) highestValue = -256; //highestValue = analyserNode.minDecibels;
+              //   console.log(highestValue);
+                
+                if (minVal > highestValue) minVal = highestValue;
+                if (maxVal < highestValue) maxVal = highestValue;
+                
                 if (currentToneIsOn != toneIsOn) {
                     if (!currentToneIsOn) {
                         var bin = sumBin / numBin;
-                        console.log(`On ${ this._ctx.currentTime - lastTime } / Freq: ${ bin * binSize }Hz / ${ bin }`)     
-                        numBin = 0; 
+                        console.log(`On ${this._ctx.currentTime - lastTime} / Freq: ${bin * binSize}Hz / ${bin}`)
+                        numBin = 0;
                         sumBin = 0;
+                        console.log(`Min ${minVal} / Max: ${maxVal}`);
                     } else {
-                        console.log(`Off ${ this._ctx.currentTime - lastTime }`) 
-
+                        console.log(`Off ${this._ctx.currentTime - lastTime}`)
                     }
 
 
