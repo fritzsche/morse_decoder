@@ -90,8 +90,8 @@ class Decoder {
             console.log(`sampleRate: ${sampleRate}`);
             console.log(`binSize: ${binSize}Hz`);
             console.log(`bufferSize: ${bufferSize / sampleRate}`);
-            console.log(`minDecibels ${ analyserNode.minDecibels }`);
-            console.log(`maxDecibels ${ analyserNode.maxDecibels }`);
+            console.log(`minDecibels ${analyserNode.minDecibels}`);
+            console.log(`maxDecibels ${analyserNode.maxDecibels}`);
             analyserNode.connect(scriptNode);
 
 
@@ -107,6 +107,59 @@ class Decoder {
 
             var minVal = Infinity;
             var maxVal = -Infinity;
+
+            // threshold in DB that we consider a CW tone
+            var threshold = Infinity;
+
+            // minToneLength
+
+            var minToneLength = Infinity;
+
+            var currentMorseString = "";
+            var currentText = "";
+
+
+            const code_map = {
+                ".-": 'a',
+                "-...": 'b',
+                "-.-.": 'c',
+                "-..": 'd',
+                ".": 'e',
+                "..-.": 'f',
+                "--.": 'g',
+                "....": 'h',
+                "..": 'i',
+                ".---": 'j',
+                "-.-": 'k',
+                ".-..": 'l',
+                "--": 'm',
+                "-.": 'n',
+                "---": 'o',
+                ".--.": 'p',
+                "--.-": 'q',
+                ".-.": 'r',
+                "...": 's',
+                "-": 't',
+                "..-": 'u',
+                "...-": 'v',
+                ".--": 'w',
+                "-..-": 'x',
+                "-.--": 'y',
+                "--..": 'z',
+
+            }
+
+            /*
+            
+                            b: , c: , d: ,
+                            e: '.', f: '', g: '', h: '',
+                            i: '..', j: '', k: '', l: '',
+                            m: '--', n: '-.', o: '---', p: '.--.',
+                            q: '--.-', r: '.-.', s: '...', t: '-',
+                            u: '..-', v: '...-', w: '.--', x: '-..-',
+                            y: '-.--', z: '--..',
+              */
+
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 i += 1;
                 var currentToneIsOn = false;
@@ -118,26 +171,61 @@ class Decoder {
                     if (fftData[n] > highestValue) { highestValue = fftData[n]; highestBin = n; }
                 }
 
+
+
+
                 if (highestValue > -30) {
                     currentToneIsOn = true;
                     numBin += 1;
                     sumBin += highestBin;
                 }
                 if (highestValue == -Infinity) highestValue = -256; //highestValue = analyserNode.minDecibels;
-              //   console.log(highestValue);
-                
+                //   console.log(highestValue);
+
                 if (minVal > highestValue) minVal = highestValue;
                 if (maxVal < highestValue) maxVal = highestValue;
-                
+
+                // if the difference of the detected max und min values is larger than 
+                // a than a specific value we have found the signal hight 
+                if (maxVal - minVal > 10) {
+                    threshold = maxVal - 5;
+                    // console.log(`set threshold 10 ${threshold}`);
+                }
+
                 if (currentToneIsOn != toneIsOn) {
+                    var toneLength = this._ctx.currentTime - lastTime;
                     if (!currentToneIsOn) {
                         var bin = sumBin / numBin;
-                        console.log(`On ${this._ctx.currentTime - lastTime} / Freq: ${bin * binSize}Hz / ${bin}`)
+
+                        if (toneLength < minToneLength) minToneLength = toneLength;
+                        if (toneLength <= minToneLength * 2) {
+                            currentMorseString += ".";
+                        } else {
+                            currentMorseString += "-";
+                        }
+                        //       console.log(`On ${toneLength} / Freq: ${bin * binSize}Hz / ${bin}`)
+
                         numBin = 0;
                         sumBin = 0;
-                        console.log(`Min ${minVal} / Max: ${maxVal}`);
+                        //    console.log(`Min ${minVal} / Max: ${maxVal}`);
                     } else {
-                        console.log(`Off ${this._ctx.currentTime - lastTime}`)
+                        if (toneLength > minToneLength * 2) {
+                            //     console.log(currentMorseString);
+                            if (currentMorseString in code_map) {
+                                currentText += code_map[currentMorseString];
+                            } else {
+                                currentText += "?";
+                            }
+                            currentMorseString = "";
+                            if (toneLength > minToneLength * 6) {
+                                console.log(currentText);
+                                currentText = "";
+                                //                                console.log("Space");
+                            } else {
+
+                            }
+                        }
+                        //    console.log(`Off ${this._ctx.currentTime - lastTime}`)
                     }
 
 
