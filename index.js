@@ -204,7 +204,7 @@ class Decoder {
                 // if the difference of the detected max und min values is larger than 
                 // a than a specific value we have found the signal hight 
                 if (maxVal - minVal > 10) {
-                    threshold = maxVal - 5;
+                    threshold = maxVal - 10;
                     // console.log(`set threshold 10 ${threshold}`);
                 }
 
@@ -219,11 +219,11 @@ class Decoder {
                         } else {
                             currentMorseString += "-";
                         }
-                        //       console.log(`On ${toneLength} / Freq: ${bin * binSize}Hz / ${bin}`)
+    //                  console.log(`On ${toneLength} / Freq: ${bin * binSize}Hz / ${bin}`)
 
                         numBin = 0;
                         sumBin = 0;
-                        //    console.log(`Min ${minVal} / Max: ${maxVal}`);
+                           console.log(`Min ${minVal} / Max: ${maxVal} / ${ minToneLength } /  ${ toneLength } `);
                     } else {
                         if (toneLength > minToneLength * 2) {
                             //     console.log(currentMorseString);
@@ -241,7 +241,7 @@ class Decoder {
 
                             }
                         }
-                        //    console.log(`Off ${this._ctx.currentTime - lastTime}`)
+         //                   console.log(`Off ${this._ctx.currentTime - lastTime}`)
                     }
 
 
