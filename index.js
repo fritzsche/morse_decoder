@@ -260,7 +260,7 @@ class Decoder {
                         if (toneLengthArray.length > 10) {
                             const [low, high] = two_means(toneLengthArray);
                             ditToneLength = low;
-                            //      console.log(`*** ${low} / ${high} `)
+                                  console.log(`*** ${low} / ${high} `)
 
                         }
 
