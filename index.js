@@ -176,6 +176,37 @@ class Decoder {
                 ".--.-.": "@"
             }
 
+            let two_means = a => {
+                a.sort((x, y) => x - y);
+                // take smallest and largest value as start value
+                var p1 = a[0];
+                var p2 = a[a.length - 1];
+                while (true) {
+                    var num1 = 0.0;
+                    var num2 = 0.0;
+                    var sum1 = 0.0;
+                    var sum2 = 0.0;
+
+                    for (var i = 0; i < a.length; i++) {
+                        if (Math.abs(p1 - a[i]) < Math.abs(p2 - a[i])) {
+                            num1 += 1;
+                            sum1 += a[i];
+                        } else {
+                            num2 += 1;
+                            sum2 += a[i];
+                        };
+                    }
+                    let mean1 = sum1 / num1;
+                    let mean2 = sum2 / num2;
+                    if ((mean1 == p1) && (mean2 == p2)) return [ mean1, mean2 ];
+                    p1 = mean1;
+                    p2 = mean2;
+                }
+
+            }
+
+            var toneLengthArray = [];
+
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 i += 1;
                 var currentToneIsOn = false;
@@ -204,6 +235,7 @@ class Decoder {
                 // if the difference of the detected max und min values is larger than 
                 // a than a specific value we have found the signal hight 
                 if (maxVal - minVal > 10) {
+
                     threshold = maxVal - 10;
                     // console.log(`set threshold 10 ${threshold}`);
                 }
@@ -219,11 +251,20 @@ class Decoder {
                         } else {
                             currentMorseString += "-";
                         }
-    //                  console.log(`On ${toneLength} / Freq: ${bin * binSize}Hz / ${bin}`)
+                  //      console.log(`On ${toneLength} / Freq: ${bin * binSize}Hz / ${bin}`)
+                        toneLengthArray.push(toneLength);
+                        if(toneLengthArray.length > 50) toneLengthArray.shift();
+                        if(toneLengthArray.length > 10) {
+                            const [low, high] = two_means(toneLengthArray);
+                      //      console.log(`*** ${low} / ${high} `)
+
+                        }
+
+
 
                         numBin = 0;
                         sumBin = 0;
-                           console.log(`Min ${minVal} / Max: ${maxVal} / ${ minToneLength } /  ${ toneLength } `);
+         //               console.log(`Min ${minVal} / Max: ${maxVal} / ${minToneLength} /  ${toneLength} `);
                     } else {
                         if (toneLength > minToneLength * 2) {
                             //     console.log(currentMorseString);
@@ -241,7 +282,7 @@ class Decoder {
 
                             }
                         }
-         //                   console.log(`Off ${this._ctx.currentTime - lastTime}`)
+                        //                   console.log(`Off ${this._ctx.currentTime - lastTime}`)
                     }
 
 
