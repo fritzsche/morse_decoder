@@ -198,7 +198,7 @@ class Decoder {
                     }
                     let mean1 = sum1 / num1;
                     let mean2 = sum2 / num2;
-                    if ((mean1 == p1) && (mean2 == p2)) return [ mean1, mean2 ];
+                    if ((mean1 == p1) && (mean2 == p2)) return [mean1, mean2];
                     p1 = mean1;
                     p2 = mean2;
                 }
@@ -206,6 +206,7 @@ class Decoder {
             }
 
             var toneLengthArray = [];
+            var ditToneLength = Infinity;
 
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 i += 1;
@@ -245,18 +246,21 @@ class Decoder {
                     if (!currentToneIsOn) {
                         var bin = sumBin / numBin;
 
-                        if (toneLength < minToneLength) minToneLength = toneLength;
-                        if (toneLength <= minToneLength * 2) {
-                            currentMorseString += ".";
-                        } else {
-                            currentMorseString += "-";
+                        //      if (toneLength < minToneLength) minToneLength = toneLength;
+                        if (ditToneLength !== Infinity) {
+                            if (toneLength <= ditToneLength * 2) {
+                                currentMorseString += ".";
+                            } else {
+                                currentMorseString += "-";
+                            }
                         }
-                  //      console.log(`On ${toneLength} / Freq: ${bin * binSize}Hz / ${bin}`)
+                        //      console.log(`On ${toneLength} / Freq: ${bin * binSize}Hz / ${bin}`)
                         toneLengthArray.push(toneLength);
-                        if(toneLengthArray.length > 50) toneLengthArray.shift();
-                        if(toneLengthArray.length > 10) {
+                        if (toneLengthArray.length > 50) toneLengthArray.shift();
+                        if (toneLengthArray.length > 10) {
                             const [low, high] = two_means(toneLengthArray);
-                      //      console.log(`*** ${low} / ${high} `)
+                            ditToneLength = low;
+                            //      console.log(`*** ${low} / ${high} `)
 
                         }
 
@@ -264,22 +268,25 @@ class Decoder {
 
                         numBin = 0;
                         sumBin = 0;
-         //               console.log(`Min ${minVal} / Max: ${maxVal} / ${minToneLength} /  ${toneLength} `);
+                        //               console.log(`Min ${minVal} / Max: ${maxVal} / ${minToneLength} /  ${toneLength} `);
                     } else {
-                        if (toneLength > minToneLength * 2) {
-                            //     console.log(currentMorseString);
-                            if (currentMorseString in code_map) {
-                                currentText += code_map[currentMorseString];
-                            } else {
-                                currentText += "?";
-                            }
-                            currentMorseString = "";
-                            if (toneLength > minToneLength * 6) {
-                                console.log(currentText);
-                                currentText = "";
-                                //                                console.log("Space");
-                            } else {
+                        // character border
+                        if (ditToneLength !== Infinity) {
+                            if (toneLength > ditToneLength * 2) {
+                                if (currentMorseString in code_map) {
+                                    currentText += code_map[currentMorseString];
+                                } else {
+                                    currentText += "?";
+                                }
+                                currentMorseString = "";
+                                // word border
+                                if (toneLength > ditToneLength * 6) {
+                                    console.log(currentText);
+                                    currentText = "";
+                                    //                                console.log("Space");
+                                } else {
 
+                                }
                             }
                         }
                         //                   console.log(`Off ${this._ctx.currentTime - lastTime}`)
