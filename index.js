@@ -211,8 +211,8 @@ class Decoder {
                 }
          //       console.log(highestBin);
          if (highestValue == -Infinity) highestValue = -256; 
-                scanArray.push(highestValue);
-                if (scanArray.length > 1000) {
+                if (i % 2 === 0) scanArray.push(highestValue);
+                if (scanArray.length > 512) {
                     scanArray.shift();
                  //   debugger;
                 }
@@ -222,7 +222,7 @@ class Decoder {
                     if (high - low > 20) {
                         threshold = high - 10 ; 
                         console.log(threshold);
-                    }                   
+                    }  else threshold = Infinity;                 
                 }
                 if (highestValue > threshold) {
                     currentToneIsOn = true;
