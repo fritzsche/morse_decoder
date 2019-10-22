@@ -84,7 +84,7 @@ class Decoder {
             let sampleRate = this._ctx.sampleRate;
             let binSize = (sampleRate / 2) / frequencyBinCount;
             let startBin = Math.floor(500 / binSize);
-            let endBin = Math.ceil(900 / binSize);
+            let endBin = Math.ceil(900 / binSize) + 1;
 
             console.log(`frequencyBinCount: ${frequencyBinCount}`);
             console.log(`sampleRate: ${sampleRate}`);
@@ -168,7 +168,7 @@ class Decoder {
             }
 
             let two_means = a => {
-                if (a.length <= 1) throw("2 means should have at least one element")
+                if (a.length <= 1) throw ("2 means should have at least one element")
                 // take smallest and largest value as start value
                 var p1 = Math.min(...a);
                 var p2 = Math.max(...a);
@@ -199,6 +199,14 @@ class Decoder {
 
             var scanArray = [];
 
+            var binArray = []; 
+
+//            analyserNode.getFloatFrequencyData(fftData);
+
+//            var movingAvg = Array(endBin - startBin).fill(-Infinity);
+
+//            const alpha = 0.01;
+            var latestBin = -1;
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 i += 1;
                 var currentToneIsOn = false;
@@ -209,20 +217,27 @@ class Decoder {
                 for (var n = startBin; n < endBin; n++) {
                     if (fftData[n] > highestValue) { highestValue = fftData[n]; highestBin = n; }
                 }
-         //       console.log(highestBin);
-         if (highestValue == -Infinity) highestValue = -256; 
-                if (i % 2 === 0) scanArray.push(highestValue);
-                if (scanArray.length > 512) {
-                    scanArray.shift();
-                 //   debugger;
-                }
-                if ( i % 50 === 0) {
-                    if(threshold < -100) debugger;
-                    const [low, high] = two_means(scanArray);                    
-                    if (high - low > 20) {
-                        threshold = high - 10 ; 
-                        console.log(threshold);
-                    }  else threshold = Infinity;                 
+  //              if (latestBin > 1 ) highestValue = Math.max(fftData[latestBin-1],fftData[latestBin],fftData[latestBin+1])
+
+                //       console.log(highestBin);
+                if (highestValue == -Infinity) return;
+                if (i % 3 === 0) 
+                    scanArray.push(highestValue);
+                if (scanArray.length > 250) scanArray.shift();
+                if (i % 50 === 0) {
+                    if (threshold < -100) debugger;
+                    const [low, high] = two_means(scanArray);
+                    if (high - low > 10) {
+                        threshold = high - 10;
+                        console.log(threshold,low,high,minVal,maxVal);
+                        minVal = Infinity;
+                        maxVal = -Infinity;
+                    } else {
+                        threshold = Infinity;
+                        console.log(low,high,minVal,maxVal);
+                        minVal = Infinity;
+                        maxVal = -Infinity;
+                    }
                 }
                 if (highestValue > threshold) {
                     currentToneIsOn = true;
@@ -234,10 +249,10 @@ class Decoder {
 
                 // if the difference of the detected max und min values is larger than 
                 // a than a specific value we have found the signal hight 
-//                if (maxVal - minVal > 10) {
-//                    threshold = maxVal - 10;
-   //                  console.log(`set threshold 10 ${threshold}`);
-//                }
+                //                if (maxVal - minVal > 10) {
+                //                    threshold = maxVal - 10;
+                //                  console.log(`set threshold 10 ${threshold}`);
+                //                }
 
                 if (currentToneIsOn != toneIsOn) {
                     var toneLength = this._ctx.currentTime - lastTime;
@@ -256,9 +271,10 @@ class Decoder {
                         if (toneLengthArray.length > 10) {
                             const [low, high] = two_means(toneLengthArray);
                             ditToneLength = low;
-                         //         console.log(`*** ${low} / ${high} `)
+                            //         console.log(`*** ${low} / ${high} `)
 
                         }
+                        latestBin = Math.round(bin);                        
                         numBin = 0;
                         sumBin = 0;
                         //               console.log(`Min ${minVal} / Max: ${maxVal} / ${minToneLength} /  ${toneLength} `);
