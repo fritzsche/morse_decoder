@@ -72,7 +72,7 @@ class Decoder {
      //      this.drawSpectrum(audioSource);
      //       return;
 
-            let bufferSize = 512;
+            let bufferSize = 256;
             let scriptNode = this._ctx.createScriptProcessor(bufferSize, 1, 1);
 
             console.log(`ScriptButterSize: ${scriptNode.bufferSize}`);
@@ -214,6 +214,14 @@ class Decoder {
             var latestBin = -1;
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 i += 1;
+
+                var inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                var m = 0;
+                for (var n = 0; n<inputData.length;n++) {
+                    var a = Math.abs(inputData[n])
+                    if (m<a) m =a;
+                }
+             if ( i % 10 === 0)  console.log(m);
                 var currentToneIsOn = false;
                 var highestValue = -Infinity;
                 var highestBin = 0;
@@ -249,7 +257,8 @@ class Decoder {
                     }
                 }
 */                
-                if (highestValue > 15) {
+     //           if (highestValue > 15) {
+        if (m > 0.25) {
                     currentToneIsOn = true;
                     numBin += 1;
                     sumBin += highestBin;
