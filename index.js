@@ -8,8 +8,9 @@ class Decoder {
         var canvasElement = document.getElementById('spectrogram')
         var gc = this.graphicContext = canvasElement.getContext("2d");
         var analyserNode = this._ctx.createAnalyser();
+        analyserNode.smoothingTimeConstant = 0;
         audioSource.connect(analyserNode);
-        analyserNode.fftSize = 8192;
+        analyserNode.fftSize = 8192*2;
         var fftData = new Float32Array(analyserNode.frequencyBinCount);
 
         var graphicWidth = parseInt(getComputedStyle(canvasElement).width, 10);
@@ -29,7 +30,7 @@ class Decoder {
 
             analyserNode.getFloatFrequencyData(fftData);
             for (var i = 0; i < graphicHeight; ++i) {
-                var n = Math.min(Math.max((fftData[i] + 80) * 4, 0), 255);
+                var n = Math.min(Math.max((fftData[i] + 55) * 4, 0), 255);
                 pixel.data[0] = n;
                 pixel.data[1] = n;
                 pixel.data[2] = n;
@@ -67,6 +68,10 @@ class Decoder {
                        
                         this.drawSpectrum(highpassFilter);
             */
+
+     //      this.drawSpectrum(audioSource);
+     //       return;
+
             let bufferSize = 512;
             let scriptNode = this._ctx.createScriptProcessor(bufferSize, 1, 1);
 
@@ -215,11 +220,15 @@ class Decoder {
 
                 analyserNode.getFloatFrequencyData(fftData);
                 for (var n = startBin; n < endBin; n++) {
+                    fftData[n] = Math.max(0,fftData[n]+60)
                     if (fftData[n] > highestValue) { highestValue = fftData[n]; highestBin = n; }
                 }
   //              if (latestBin > 1 ) highestValue = Math.max(fftData[latestBin-1],fftData[latestBin],fftData[latestBin+1])
 
                 //       console.log(highestBin);
+
+/*
+
                 if (highestValue == -Infinity) return;
                 if (i % 3 === 0) 
                     scanArray.push(highestValue);
@@ -239,7 +248,8 @@ class Decoder {
                         maxVal = -Infinity;
                     }
                 }
-                if (highestValue > threshold) {
+*/                
+                if (highestValue > 15) {
                     currentToneIsOn = true;
                     numBin += 1;
                     sumBin += highestBin;
