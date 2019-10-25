@@ -10,7 +10,7 @@ class Decoder {
         var analyserNode = this._ctx.createAnalyser();
         analyserNode.smoothingTimeConstant = 0;
         audioSource.connect(analyserNode);
-        analyserNode.fftSize = 8192*2;
+        analyserNode.fftSize = 8192 * 2;
         var fftData = new Float32Array(analyserNode.frequencyBinCount);
 
         var graphicWidth = parseInt(getComputedStyle(canvasElement).width, 10);
@@ -69,10 +69,10 @@ class Decoder {
                         this.drawSpectrum(highpassFilter);
             */
 
-     //      this.drawSpectrum(audioSource);
-     //       return;
+            //      this.drawSpectrum(audioSource);
+            //       return;
 
-            let bufferSize = 256;
+            let bufferSize = 512 ;
             let scriptNode = this._ctx.createScriptProcessor(bufferSize, 1, 1);
 
             console.log(`ScriptButterSize: ${scriptNode.bufferSize}`);
@@ -84,12 +84,10 @@ class Decoder {
             analyserNode.smoothingTimeConstant = 0;
 
 
-            var fftData = new Float32Array(analyserNode.frequencyBinCount);
+
             let frequencyBinCount = analyserNode.frequencyBinCount;
             let sampleRate = this._ctx.sampleRate;
             let binSize = (sampleRate / 2) / frequencyBinCount;
-            let startBin = Math.floor(500 / binSize);
-            let endBin = Math.ceil(900 / binSize) + 1;
 
             console.log(`frequencyBinCount: ${frequencyBinCount}`);
             console.log(`sampleRate: ${sampleRate}`);
@@ -100,20 +98,7 @@ class Decoder {
             analyserNode.connect(scriptNode);
 
             scriptNode.connect(this._ctx.destination);
-            var i = 0;
-            var toneIsOn = false;
-            var lastTime = this._ctx.currentTime;
 
-            var numBin = 0;
-            var sumBin = 0;
-
-            var minVal = Infinity;
-            var maxVal = -Infinity;
-            // threshold in DB that we consider a CW tone
-            var threshold = Infinity;
-
-            var currentMorseString = "";
-            var currentText = "";
 
             const code_map = {
                 ".-": 'a',
@@ -199,144 +184,48 @@ class Decoder {
                 }
             }
 
-            var toneLengthArray = [];
-            var ditToneLength = Infinity;
+            //    let scalingFactor = bufferSize / 2;  
 
-            var scanArray = [];
+            const analyzerState = {
+                LOW: 1,
+                HIGH: 2
+            };
 
-            var binArray = []; 
 
-//            analyserNode.getFloatFrequencyData(fftData);
+            let magnitudelimitLow = 30;
+            let magnitudeLimit = magnitudelimitLow;            
 
-//            var movingAvg = Array(endBin - startBin).fill(-Infinity);
+            let targetFrequency = 700;
+            let k = (0.5 + ((bufferSize * targetFrequency) / sampleRate));
+            let omega = (2 * Math.PI * k) / bufferSize;
+            //    let sine = Math.sin(omega);
+            let cosine = Math.cos(omega);
+            let coeff = 2 * cosine;
+            let Q0, Q1, Q2;
 
-//            const alpha = 0.01;
-            var latestBin = -1;
             scriptNode.onaudioprocess = audioProcessingEvent => {
-                i += 1;
-
                 var inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                var m = 0;
-                for (var n = 0; n<inputData.length;n++) {
-                    var a = Math.abs(inputData[n])
-                    if (m<a) m =a;
+                Q1 = 0;
+                Q2 = 0;
+                for (var i = 0; i < inputData.length; i++) {
+                    Q0 = coeff * Q1 - Q2 + inputData[i];
+                    Q2 = Q1;
+                    Q1 = Q0;
                 }
-             if ( i % 10 === 0)  console.log(m);
-                var currentToneIsOn = false;
-                var highestValue = -Infinity;
-                var highestBin = 0;
+                let magnitude = Math.sqrt(Q1 * Q1 + Q2 * Q2 - Q1 * Q2 * coeff);
 
-                analyserNode.getFloatFrequencyData(fftData);
-                for (var n = startBin; n < endBin; n++) {
-                    fftData[n] = Math.max(0,fftData[n]+60)
-                    if (fftData[n] > highestValue) { highestValue = fftData[n]; highestBin = n; }
-                }
-  //              if (latestBin > 1 ) highestValue = Math.max(fftData[latestBin-1],fftData[latestBin],fftData[latestBin+1])
+                if (magnitude > magnitudelimitLow) magnitudeLimit = Math.max(magnitudelimitLow, magnitudeLimit + ((magnitude - magnitudeLimit) / 6));
+          //      console.log(magnitudeLimit,magnitude);
 
-                //       console.log(highestBin);
-
-/*
-
-                if (highestValue == -Infinity) return;
-                if (i % 3 === 0) 
-                    scanArray.push(highestValue);
-                if (scanArray.length > 250) scanArray.shift();
-                if (i % 50 === 0) {
-                    if (threshold < -100) debugger;
-                    const [low, high] = two_means(scanArray);
-                    if (high - low > 10) {
-                        threshold = high - 10;
-                        console.log(threshold,low,high,minVal,maxVal);
-                        minVal = Infinity;
-                        maxVal = -Infinity;
-                    } else {
-                        threshold = Infinity;
-                        console.log(low,high,minVal,maxVal);
-                        minVal = Infinity;
-                        maxVal = -Infinity;
-                    }
-                }
-*/                
-     //           if (highestValue > 15) {
-        if (m > 0.25) {
-                    currentToneIsOn = true;
-                    numBin += 1;
-                    sumBin += highestBin;
-                }
-                if (minVal > highestValue) minVal = highestValue;
-                if (maxVal < highestValue) maxVal = highestValue;
-
-                // if the difference of the detected max und min values is larger than 
-                // a than a specific value we have found the signal hight 
-                //                if (maxVal - minVal > 10) {
-                //                    threshold = maxVal - 10;
-                //                  console.log(`set threshold 10 ${threshold}`);
-                //                }
-
-                if (currentToneIsOn != toneIsOn) {
-                    var toneLength = this._ctx.currentTime - lastTime;
-                    if (!currentToneIsOn) {
-                        var bin = sumBin / numBin;
-                        if (ditToneLength !== Infinity) {
-                            if (toneLength <= ditToneLength * 2) {
-                                currentMorseString += ".";
-                            } else {
-                                currentMorseString += "-";
-                            }
-                        }
-                        //      console.log(`On ${toneLength} / Freq: ${bin * binSize}Hz / ${bin}`)
-                        toneLengthArray.push(toneLength);
-                        if (toneLengthArray.length > 50) toneLengthArray.shift();
-                        if (toneLengthArray.length > 10) {
-                            const [low, high] = two_means(toneLengthArray);
-                            ditToneLength = low;
-                            //         console.log(`*** ${low} / ${high} `)
-
-                        }
-                        latestBin = Math.round(bin);                        
-                        numBin = 0;
-                        sumBin = 0;
-                        //               console.log(`Min ${minVal} / Max: ${maxVal} / ${minToneLength} /  ${toneLength} `);
-                    } else {
-                        // character border
-                        if (ditToneLength !== Infinity) {
-                            if (toneLength > ditToneLength * 2) {
-                                if (currentMorseString in code_map) {
-                                    currentText += code_map[currentMorseString];
-                                } else {
-                                    currentText += "?";
-                                }
-                                currentMorseString = "";
-                                // word border
-                                if (toneLength > ditToneLength * 5) {
-                                    console.log(currentText);
-                                    currentText = "";
-                                    //                                console.log("Space");
-                                } else {
-
-                                }
-                            }
-                        }
-                        //                   console.log(`Off ${this._ctx.currentTime - lastTime}`)
-                    }
-
-
-                    //         console.log(highestValue);
-                    //        console.log(highestPosition);
-                    toneIsOn = !toneIsOn;
-                    lastTime = this._ctx.currentTime;
+                if (magnitude > magnitudeLimit * 0.6) {
+                  console.log(magnitudeLimit,magnitude,"^");
+                } else {
+                 console.log(magnitudeLimit,magnitude);
                 }
 
-                /*                
-                                // we just support mono and read the first channel
-                                let inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                                var maxAmp = 0;
-                                for (let sample = 0; sample < audioProcessingEvent.inputBuffer.length; sample++) {
-                                    maxAmp = Math.max(maxAmp, inputData[sample]);
-                                }
-                                if (maxAmp > 0.2)
-                                    console.log(`AudioEvent:  ${audioProcessingEvent.inputBuffer.numberOfChannels} channel / max ${maxAmp}`);
-                                    */
+            
+
+
             }
         });
         let onGetUserMediaError = (err => { console.error('Error connecting: ' + err); });
