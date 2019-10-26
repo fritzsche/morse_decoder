@@ -72,7 +72,7 @@ class Decoder {
             //      this.drawSpectrum(audioSource);
             //       return;
 
-            let bufferSize = 512 ;
+            let bufferSize = 512;
             let scriptNode = this._ctx.createScriptProcessor(bufferSize, 1, 1);
 
             console.log(`ScriptButterSize: ${scriptNode.bufferSize}`);
@@ -184,25 +184,27 @@ class Decoder {
                 }
             }
 
-            //    let scalingFactor = bufferSize / 2;  
-
-            const analyzerState = {
+            const morseState = {
                 LOW: 1,
                 HIGH: 2
             };
-
-
-            let magnitudelimitLow = 30;
-            let magnitudeLimit = magnitudelimitLow;            
-
-            let targetFrequency = 700;
-            let k = (0.5 + ((bufferSize * targetFrequency) / sampleRate));
-            let omega = (2 * Math.PI * k) / bufferSize;
-            //    let sine = Math.sin(omega);
+            let magnitudelimitLow = 1000;
+            let magnitudeLimit = magnitudelimitLow;
+            let targetFrequency = 650;
+            let omega = (2 * Math.PI * (0.5 + ((bufferSize * targetFrequency) / sampleRate))) / bufferSize;
             let cosine = Math.cos(omega);
             let coeff = 2 * cosine;
             let Q0, Q1, Q2;
+         
+            var currentState = morseState.LOW;
+            var lastState = currentState;
+            var filteredState = currentState;
+            var lastFilteredState = currentState;
+            var noiseTime = 0.006;
 
+            var lastChangeTime = this._ctx.currentTime;
+            var lastFilteredChangeTime = lastChangeTime;
+            var avgDuration = Infinity;
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 var inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
                 Q1 = 0;
@@ -212,19 +214,32 @@ class Decoder {
                     Q2 = Q1;
                     Q1 = Q0;
                 }
-                let magnitude = Math.sqrt(Q1 * Q1 + Q2 * Q2 - Q1 * Q2 * coeff);
-
+                let magnitude = Q1 * Q1 + Q2 * Q2 - Q1 * Q2 * coeff //  Math.sqrt();
                 if (magnitude > magnitudelimitLow) magnitudeLimit = Math.max(magnitudelimitLow, magnitudeLimit + ((magnitude - magnitudeLimit) / 6));
-          //      console.log(magnitudeLimit,magnitude);
-
-                if (magnitude > magnitudeLimit * 0.6) {
-                  console.log(magnitudeLimit,magnitude,"^");
-                } else {
-                 console.log(magnitudeLimit,magnitude);
+                currentState = magnitude > magnitudeLimit * 0.6 ? morseState.HIGH : morseState.LOW;
+                if (currentState !== lastState) {
+                    lastChangeTime = audioProcessingEvent.playbackTime;                    
                 }
 
-            
+                if (audioProcessingEvent.playbackTime - lastChangeTime > noiseTime){
+                    filteredState = currentState;
+                }
 
+                if (filteredState !== lastFilteredState) {
+                    var duration = lastChangeTime - lastFilteredChangeTime 
+                    
+                    lastFilteredChangeTime  = lastChangeTime;
+                    if (lastFilteredState === morseState.HIGH) {
+                        if (duration < 2 * avgDuration || avgDuration === 0)
+                           avgDuration =  ( duration + avgDuration * 2 ) / 3;
+                        console.log("*",lastDuration); else console.log(" ");
+                    } 
+                }
+
+
+
+                lastState = currentState;
+                lastFilteredState = filteredState;
 
             }
         });
