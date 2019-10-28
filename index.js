@@ -158,7 +158,7 @@ class Decoder {
             }
 
             let two_means = a => {
-                if (a.length <= 1) throw ("2 means should have at least one element")
+                if (a.length < 1) throw ("2 means should have at least one element")
                 // take smallest and largest value as start value
                 var p1 = Math.min(...a);
                 var p2 = Math.max(...a);
@@ -188,14 +188,14 @@ class Decoder {
                 LOW: 1,
                 HIGH: 2
             };
-            let magnitudelimitLow = 1000;
+            let magnitudelimitLow = 800;
             let magnitudeLimit = magnitudelimitLow;
-            let targetFrequency = 650;
+            let targetFrequency = 700;
             let omega = (2 * Math.PI * (0.5 + ((bufferSize * targetFrequency) / sampleRate))) / bufferSize;
             let cosine = Math.cos(omega);
             let coeff = 2 * cosine;
             let Q0, Q1, Q2;
-         
+
             var currentState = morseState.LOW;
             var lastState = currentState;
             var filteredState = currentState;
@@ -205,7 +205,17 @@ class Decoder {
             var lastChangeTime = this._ctx.currentTime;
             var lastFilteredChangeTime = lastChangeTime;
             var avgDuration = Infinity;
+
+            var i = 0;
+            var durationArray = [];
+            var ditLength = 0.06;
+            var dahLength = 3 * ditLength;
+            var currentMorseString = "";
+            var currentText = "";
+
             scriptNode.onaudioprocess = audioProcessingEvent => {
+                i += 1;
+
                 var inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
                 Q1 = 0;
                 Q2 = 0;
@@ -218,22 +228,43 @@ class Decoder {
                 if (magnitude > magnitudelimitLow) magnitudeLimit = Math.max(magnitudelimitLow, magnitudeLimit + ((magnitude - magnitudeLimit) / 6));
                 currentState = magnitude > magnitudeLimit * 0.6 ? morseState.HIGH : morseState.LOW;
                 if (currentState !== lastState) {
-                    lastChangeTime = audioProcessingEvent.playbackTime;                    
+                    lastChangeTime = audioProcessingEvent.playbackTime;
                 }
 
-                if (audioProcessingEvent.playbackTime - lastChangeTime > noiseTime){
+                if (audioProcessingEvent.playbackTime - lastChangeTime > noiseTime) {
                     filteredState = currentState;
                 }
 
                 if (filteredState !== lastFilteredState) {
-                    var duration = lastChangeTime - lastFilteredChangeTime 
-                    
-                    lastFilteredChangeTime  = lastChangeTime;
-                    if (lastFilteredState === morseState.HIGH) {
-                        if (duration < 2 * avgDuration || avgDuration === 0)
-                           avgDuration =  ( duration + avgDuration * 2 ) / 3;
-                        console.log("*",lastDuration); else console.log(" ");
-                    } 
+                    var duration = lastChangeTime - lastFilteredChangeTime
+
+                    lastFilteredChangeTime = lastChangeTime;
+                    if (lastFilteredState == morseState.HIGH) { // end of HIGH
+                        durationArray.push(duration);
+                        if (durationArray.length > 20) durationArray.shift();
+                        if (durationArray.length > 2) [ditLength, dahLength] = two_means(durationArray);
+                        if (duration <= ditLength * 2) {
+                            currentMorseString += ".";
+                        } else {
+                            currentMorseString += "-";
+                        }
+                    } else { // end of low
+                        if (duration > ditLength * 2) {
+                            if (currentMorseString in code_map) {
+                                currentText += code_map[currentMorseString];
+                            } else {
+                                currentText += "*";
+                            }
+                            currentMorseString = "";
+                            // word border
+                            if (duration > ditLength * 5) {
+                                console.log(currentText);
+                                currentText = "";
+                                //                                console.log("Space");
+                            }
+
+                        }
+                    }
                 }
 
 
