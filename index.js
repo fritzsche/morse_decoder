@@ -72,7 +72,7 @@ class Decoder {
             //      this.drawSpectrum(audioSource);
             //       return;
 
-            let bufferSize = 512/2;
+            let bufferSize = 512;
             let scriptNode = this._ctx.createScriptProcessor(bufferSize, 1, 1);
 
             console.log(`ScriptButterSize: ${scriptNode.bufferSize}`);
@@ -190,7 +190,7 @@ class Decoder {
             };
             let magnitudelimitLow = 500;
             let magnitudeLimit = magnitudelimitLow;
-            let targetFrequency = 600;
+            let targetFrequency = 750;
             let omega = (2 * Math.PI * (0.5 + ((bufferSize * targetFrequency) / sampleRate))) / bufferSize;
             let cosine = Math.cos(omega);
             let coeff = 2 * cosine;
@@ -200,7 +200,7 @@ class Decoder {
             var lastState = currentState;
             var filteredState = currentState;
             var lastFilteredState = currentState;
-            var noiseTime = 0.0003;
+            var noiseTime = 0.006;
 
             var lastChangeTime = this._ctx.currentTime;
             var lastFilteredChangeTime = lastChangeTime;
@@ -237,26 +237,26 @@ class Decoder {
                 }
 
         //    console.log("Filter:", filteredState)
-                if (currentState == morseState.HIGH) console.log(magnitude,"*"); else console.log(magnitude,"");
+ //               if (currentState == morseState.HIGH) console.log(magnitude,"*"); else console.log(magnitude,"");
 
 
                 if (filteredState != lastFilteredState) {
                     var duration = lastChangeTime - lastFilteredChangeTime
-
+if (lastFilteredState == morseState.LOW) console.log(duration,lastFilteredState,ditLength)
                     lastFilteredChangeTime = lastChangeTime;
                     if (lastFilteredState == morseState.HIGH) { // end of HIGH
                         durationArray.push(duration);
                         if (durationArray.length > 100) durationArray.shift();
                         if (durationArray.length > 2) [ditLength, dahLength] = two_means(durationArray);
-                        console.log("***",dahLength,ditLength)
+             //           console.log("***",dahLength,ditLength)
                         if (duration <= ditLength * 2) {
                             currentMorseString += ".";
                         } else {
                             currentMorseString += "-";
                         }
                     } else { // end of low
-                        console.log("LackDur",duration);
-                        if (duration > ditLength * 2) {
+              //          console.log("LackDur",duration);
+                        if (duration > ditLength * 1.5 * 2) {
                             if (currentMorseString in code_map) {
                                 currentText += code_map[currentMorseString];
                             } else {
@@ -264,7 +264,7 @@ class Decoder {
                             }
                             currentMorseString = "";
                             // word border
-                            if (duration > ditLength * 5) {
+                            if (duration > ditLength *1.5 * 5) {
                                 console.log(currentText);
                                 currentText = "";
                                 //                                console.log("Space");
