@@ -212,6 +212,7 @@ class Decoder {
             var dahLength = 3 * ditLength;
             var currentMorseString = "";
             var currentText = "";
+            var pauseDuration = ditLength;
 
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 counter += 1;
@@ -242,7 +243,8 @@ class Decoder {
 
                 if (filteredState != lastFilteredState) {
                     var duration = lastChangeTime - lastFilteredChangeTime
-if (lastFilteredState == morseState.LOW) console.log(duration,lastFilteredState,ditLength)
+//if (lastFilteredState == morseState.LOW) 
+//console.log(duration,lastFilteredState,ditLength, "p", pauseDuration)
                     lastFilteredChangeTime = lastChangeTime;
                     if (lastFilteredState == morseState.HIGH) { // end of HIGH
                         durationArray.push(duration);
@@ -256,7 +258,10 @@ if (lastFilteredState == morseState.LOW) console.log(duration,lastFilteredState,
                         }
                     } else { // end of low
               //          console.log("LackDur",duration);
-                        if (duration > ditLength * 1.5 * 2) {
+                        if (duration < ditLength * 2.5) {
+                            pauseDuration = (5*pauseDuration +duration ) / 6;
+                        }
+                        if (duration > pauseDuration * 2.5) {
                             if (currentMorseString in code_map) {
                                 currentText += code_map[currentMorseString];
                             } else {
@@ -264,7 +269,7 @@ if (lastFilteredState == morseState.LOW) console.log(duration,lastFilteredState,
                             }
                             currentMorseString = "";
                             // word border
-                            if (duration > ditLength *1.5 * 5) {
+                            if (duration > pauseDuration * 4) {
                                 console.log(currentText);
                                 currentText = "";
                                 //                                console.log("Space");
