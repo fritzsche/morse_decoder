@@ -242,7 +242,8 @@ class Decoder {
 
                 if (filteredState != lastFilteredState) {
                     var duration = lastChangeTime - lastFilteredChangeTime
-if (lastFilteredState == morseState.LOW) console.log(duration,lastFilteredState,ditLength)
+//if (lastFilteredState == morseState.LOW) 
+console.log(duration,lastFilteredState,ditLength)
                     lastFilteredChangeTime = lastChangeTime;
                     if (lastFilteredState == morseState.HIGH) { // end of HIGH
                         durationArray.push(duration);
