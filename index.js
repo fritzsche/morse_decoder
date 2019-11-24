@@ -190,7 +190,7 @@ class Decoder {
             };
             let magnitudelimitLow = 500;
             let magnitudeLimit = magnitudelimitLow;
-            let targetFrequency = 750;
+            let targetFrequency = 650;
             let omega = (2 * Math.PI * (0.5 + ((bufferSize * targetFrequency) / sampleRate))) / bufferSize;
             let cosine = Math.cos(omega);
             let coeff = 2 * cosine;
@@ -237,31 +237,31 @@ class Decoder {
                     filteredState = currentState;
                 }
 
-        //    console.log("Filter:", filteredState)
- //               if (currentState == morseState.HIGH) console.log(magnitude,"*"); else console.log(magnitude,"");
+                //    console.log("Filter:", filteredState)
+                //               if (currentState == morseState.HIGH) console.log(magnitude,"*"); else console.log(magnitude,"");
 
 
                 if (filteredState != lastFilteredState) {
                     var duration = lastChangeTime - lastFilteredChangeTime
-//if (lastFilteredState == morseState.LOW) 
-//console.log(duration,lastFilteredState,ditLength, "p", pauseDuration)
+                    //if (lastFilteredState == morseState.LOW) 
+                    //console.log(duration,lastFilteredState,ditLength, "p", pauseDuration)
                     lastFilteredChangeTime = lastChangeTime;
                     if (lastFilteredState == morseState.HIGH) { // end of HIGH
                         durationArray.push(duration);
                         if (durationArray.length > 100) durationArray.shift();
                         if (durationArray.length > 2) [ditLength, dahLength] = two_means(durationArray);
-             //           console.log("***",dahLength,ditLength)
+                                   console.log("***",dahLength,ditLength)
                         if (duration <= ditLength * 2) {
                             currentMorseString += ".";
                         } else {
                             currentMorseString += "-";
                         }
                     } else { // end of low
-              //          console.log("LackDur",duration);
+                        //          console.log("LackDur",duration);
                         if (duration < ditLength * 2.5) {
-                            pauseDuration = (5*pauseDuration +duration ) / 6;
+                            pauseDuration = (5 * pauseDuration + duration) / 6;
                         }
-                        if (duration > pauseDuration * 2.5) {
+                        if (duration > ditLength * 2.5) { //
                             if (currentMorseString in code_map) {
                                 currentText += code_map[currentMorseString];
                             } else {
@@ -269,7 +269,7 @@ class Decoder {
                             }
                             currentMorseString = "";
                             // word border
-                            if (duration > pauseDuration * 4) {
+                            if (duration > ditLength * 5) {
                                 console.log(currentText);
                                 currentText = "";
                                 //                                console.log("Space");
