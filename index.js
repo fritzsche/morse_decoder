@@ -5,17 +5,38 @@ class Decoder {
     }
 
     drawSpectrum(audioSource) {
-        var canvasElement = document.getElementById('spectrogram')
+        const canvasElement = document.getElementById('spectrogram')
+
+ 
+
         var gc = this.graphicContext = canvasElement.getContext("2d");
         var analyserNode = this._ctx.createAnalyser();
-        analyserNode.smoothingTimeConstant = 0;
+        //     analyserNode.smoothingTimeConstant = 0;
         audioSource.connect(analyserNode);
-        analyserNode.fftSize = 8192 * 2;
-        var fftData = new Float32Array(analyserNode.frequencyBinCount);
+        analyserNode.fftSize = 1024 * 8;
 
+        let frequencyBinCount = analyserNode.frequencyBinCount;
+        let sampleRate = this._ctx.sampleRate;
+        let fftBinSize = (sampleRate / 2) / frequencyBinCount;
         var graphicWidth = parseInt(getComputedStyle(canvasElement).width, 10);
         var graphicHeight = parseInt(getComputedStyle(canvasElement).height, 10);
 
+        let getCursorPosition = (canvas, event) => {
+            const rect = canvas.getBoundingClientRect()
+            const x = event.clientX - rect.left
+            const y = event.clientY - rect.top
+            console.log("x: " + x + " y: " + y)
+            const pos = graphicHeight - y;
+            let freq = pos * fftBinSize;
+            console.log(`freq ${ freq }hz`)
+        }
+        canvasElement.onclick = e => {
+            getCursorPosition(canvasElement, e);
+        }
+
+
+        var fftData = new Float32Array(analyserNode.frequencyBinCount);
+        console.log(`Bin count: ${analyserNode.frequencyBinCount}`);
         console.log(`GraphicsHeight: ${graphicHeight}`);
         console.log(`GraphicsWidth: ${graphicWidth}`)
 
@@ -29,6 +50,7 @@ class Decoder {
             gc.putImageData(slideImage, 1, 0);
 
             analyserNode.getFloatFrequencyData(fftData);
+
             for (var i = 0; i < graphicHeight; ++i) {
                 var n = Math.min(Math.max((fftData[i] + 55) * 4, 0), 255);
                 pixel.data[0] = n;
@@ -69,10 +91,10 @@ class Decoder {
                         this.drawSpectrum(highpassFilter);
             */
 
-            //      this.drawSpectrum(audioSource);
-            //       return;
+            this.drawSpectrum(audioSource);
+      //         return;
 
-            let bufferSize = 512;
+            let bufferSize = 256;
             let scriptNode = this._ctx.createScriptProcessor(bufferSize, 1, 1);
 
             console.log(`ScriptButterSize: ${scriptNode.bufferSize}`);
@@ -190,7 +212,7 @@ class Decoder {
             };
             let magnitudelimitLow = 500;
             let magnitudeLimit = magnitudelimitLow;
-            let targetFrequency = 650;
+            let targetFrequency = 769;
             let omega = (2 * Math.PI * (0.5 + ((bufferSize * targetFrequency) / sampleRate))) / bufferSize;
             let cosine = Math.cos(omega);
             let coeff = 2 * cosine;
@@ -250,18 +272,19 @@ class Decoder {
                         durationArray.push(duration);
                         if (durationArray.length > 100) durationArray.shift();
                         if (durationArray.length > 2) [ditLength, dahLength] = two_means(durationArray);
-                                   console.log("***",dahLength,ditLength)
-                        if (duration <= ditLength * 2) {
+
+                        if (duration <= ditLength * 1.3) {
                             currentMorseString += ".";
                         } else {
                             currentMorseString += "-";
                         }
+                        console.log("***", dahLength, ditLength, duration, currentMorseString)
                     } else { // end of low
+                        console.log("___", dahLength, ditLength, duration, currentMorseString)
                         //          console.log("LackDur",duration);
-                        if (duration < ditLength * 2.5) {
+                        if (duration < ditLength * 2.7) {
                             pauseDuration = (5 * pauseDuration + duration) / 6;
-                        }
-                        if (duration > ditLength * 2.5) { //
+                        } else { //
                             if (currentMorseString in code_map) {
                                 currentText += code_map[currentMorseString];
                             } else {
@@ -278,8 +301,6 @@ class Decoder {
                         }
                     }
                 }
-
-
 
                 lastState = currentState;
                 lastFilteredState = filteredState;
@@ -305,6 +326,7 @@ document.addEventListener("DOMContentLoaded", function (event) {
     var decoder = new Decoder();
     document.getElementById("play").onclick = e => {
         console.log("play!");
+        //        decoder.drawSpectrum( );
         decoder.play();
     }
 });
