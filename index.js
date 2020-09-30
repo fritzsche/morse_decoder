@@ -251,10 +251,19 @@ class Decoder {
             var currentText = "";
             var pauseDuration = ditLength;
 
+            var lastMag = 0;
+
             scriptNode.onaudioprocess = audioProcessingEvent => {
                 counter += 1;
 
                 var inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+/*
+                var lastOutput = inputData[0];
+                for (var i = 0; i < bufferSize; i++) {
+                    inputData[i] = ( inputData[i] + lastOutput ) / 2;
+                    lastOutput = inputData[i];
+                }
+*/
                 Q1 = 0;
                 Q2 = 0;
                 for (var i = 0; i < inputData.length; i++) {
@@ -263,13 +272,15 @@ class Decoder {
                     Q1 = Q0;
                 }
                 let magnitude = Math.sqrt( Q1 * Q1 + Q2 * Q2 - Q1 * Q2 * coeff ) //  Math.sqrt();
-
+                
+                magnitude =  ( lastMag + magnitude ) / 2;
+                lastMag = magnitude;
            
                 var slideImage = gc.getImageData(0, 0, graphicWidth - 1, graphicHeight);
 
                 gc.putImageData(slideImage, 1, 0);
                 gc.fillRect(0, 0, 1, graphicHeight);
-                gc.putImageData(pixel, 0, graphicHeight - magnitude * 2);
+                gc.putImageData(pixel, 0, graphicHeight - magnitude * 3);
 
 //console.log(`Mag: ${ magnitude }`);
 
