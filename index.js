@@ -107,6 +107,21 @@ class Decoder {
 
 
 
+            const canvasElement = document.getElementById('graph')
+            var gc = this.graphicContext = canvasElement.getContext("2d");
+            var graphicWidth = parseInt(getComputedStyle(canvasElement).width, 10);
+            var graphicHeight = parseInt(getComputedStyle(canvasElement).height, 10);
+            gc.fillStyle = '#000000';
+
+            gc.fillRect(0, 0, graphicWidth, graphicHeight);
+            var pixel = gc.createImageData(1, 1);
+            pixel.data[0] = 255;            
+            pixel.data[1] = 255;
+            pixel.data[2] = 255;
+            pixel.data[3] = 255;
+
+
+
             let frequencyBinCount = analyserNode.frequencyBinCount;
             let sampleRate = this._ctx.sampleRate;
             let binSize = (sampleRate / 2) / frequencyBinCount;
@@ -210,7 +225,7 @@ class Decoder {
                 LOW: 1,
                 HIGH: 2
             };
-            let magnitudelimitLow = 500;
+            let magnitudelimitLow = 8.0;
             let magnitudeLimit = magnitudelimitLow;
             let targetFrequency = 769;
             let omega = (2 * Math.PI * (0.5 + ((bufferSize * targetFrequency) / sampleRate))) / bufferSize;
@@ -247,7 +262,17 @@ class Decoder {
                     Q2 = Q1;
                     Q1 = Q0;
                 }
-                let magnitude = Q1 * Q1 + Q2 * Q2 - Q1 * Q2 * coeff //  Math.sqrt();
+                let magnitude = Math.sqrt( Q1 * Q1 + Q2 * Q2 - Q1 * Q2 * coeff ) //  Math.sqrt();
+
+           
+                var slideImage = gc.getImageData(0, 0, graphicWidth - 1, graphicHeight);
+
+                gc.putImageData(slideImage, 1, 0);
+                gc.fillRect(0, 0, 1, graphicHeight);
+                gc.putImageData(pixel, 0, graphicHeight - magnitude * 2);
+
+//console.log(`Mag: ${ magnitude }`);
+
                 if (magnitude > magnitudelimitLow) magnitudeLimit = Math.max(magnitudelimitLow, magnitudeLimit + ((magnitude - magnitudeLimit) / 6));
                 currentState = magnitude > magnitudeLimit * 0.6 ? morseState.HIGH : morseState.LOW;
 
@@ -278,9 +303,9 @@ class Decoder {
                         } else {
                             currentMorseString += "-";
                         }
-                        console.log("***", dahLength, ditLength, duration, currentMorseString)
+                       // console.log("***", dahLength, ditLength, duration, currentMorseString)
                     } else { // end of low
-                        console.log("___", dahLength, ditLength, duration, currentMorseString)
+                     //   console.log("___", dahLength, ditLength, duration, currentMorseString)
                         //          console.log("LackDur",duration);
                         if (duration < ditLength * 2.7) {
                             pauseDuration = (5 * pauseDuration + duration) / 6;
