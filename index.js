@@ -72,28 +72,9 @@ class Decoder {
             navigator.mozGetUserMedia || navigator.msGetUserMedia)
         let onGetUserMedia = (stream => {
             let audioSource = this._ctx.createMediaStreamSource(stream);
-            /*
-                        let lowpassFilter = this._ctx.createBiquadFilter();
-                        let highpassFilter = this._ctx.createBiquadFilter();
-                        highpassFilter.frequency.setValueAtTime(200, this._ctx.currentTime);
-                        highpassFilter.Q.setValueAtTime(0.707, this._ctx.currentTime); 
-                        highpassFilter.type = "highpass";
-                        lowpassFilter.Q.setValueAtTime(0.707, this._ctx.currentTime); 
-                        lowpassFilter.frequency.setValueAtTime(2000, this._ctx.currentTime);
-                        lowpassFilter.type = "lowpass";
-            */
-
-
-            /*
-                        audioSource.connect(lowpassFilter);
-                        lowpassFilter.connect(highpassFilter);
-                       
-                        this.drawSpectrum(highpassFilter);
-            */
 
             this.drawSpectrum(audioSource);
       //         return;
-
             let bufferSize = 256;
             let scriptNode = this._ctx.createScriptProcessor(bufferSize, 1, 1);
 
@@ -112,15 +93,31 @@ class Decoder {
             var graphicWidth = parseInt(getComputedStyle(canvasElement).width, 10);
             var graphicHeight = parseInt(getComputedStyle(canvasElement).height, 10);
             gc.fillStyle = '#000000';
-
             gc.fillRect(0, 0, graphicWidth, graphicHeight);
-            var pixel = gc.createImageData(1, 1);
+            let pixel = gc.createImageData(1, 1);
             pixel.data[0] = 255;            
             pixel.data[1] = 255;
             pixel.data[2] = 255;
             pixel.data[3] = 255;
 
 
+            let pixelList = [];
+            let stopAnimation = false;
+            const animate = (() => {
+                let pixels = pixelList.length;
+                if (pixels > 0) {
+                 let slideImage = gc.getImageData(0, 0, graphicWidth - pixels, graphicHeight);
+ 
+                  gc.putImageData(slideImage, pixels, 0);
+                  gc.fillRect(0, 0, pixels, graphicHeight);
+                  for(let i = 0;i<pixels;i++) {
+                    let pos = pixelList.shift( );  
+                    gc.putImageData(pixel, i , graphicHeight - pos );
+                  }
+                }               
+                if (stopAnimation == false ) requestAnimationFrame(animate);
+            });
+            requestAnimationFrame(animate);
 
             let frequencyBinCount = analyserNode.frequencyBinCount;
             let sampleRate = this._ctx.sampleRate;
@@ -227,7 +224,7 @@ class Decoder {
             };
             let magnitudelimitLow = 8.0;
             let magnitudeLimit = magnitudelimitLow;
-            let targetFrequency = 769;
+            let targetFrequency = 680;
             let omega = (2 * Math.PI * (0.5 + ((bufferSize * targetFrequency) / sampleRate))) / bufferSize;
             let cosine = Math.cos(omega);
             let coeff = 2 * cosine;
@@ -271,17 +268,13 @@ class Decoder {
                     Q2 = Q1;
                     Q1 = Q0;
                 }
-                let magnitude = Math.sqrt( Q1 * Q1 + Q2 * Q2 - Q1 * Q2 * coeff ) //  Math.sqrt();
-                
-                magnitude =  ( lastMag + magnitude ) / 2;
-                lastMag = magnitude;
-           
-                var slideImage = gc.getImageData(0, 0, graphicWidth - 1, graphicHeight);
+                let magnitude = Math.sqrt( Q1 * Q1 + Q2 * Q2 - Q1 * Q2 * coeff )
 
-                gc.putImageData(slideImage, 1, 0);
-                gc.fillRect(0, 0, 1, graphicHeight);
-                gc.putImageData(pixel, 0, graphicHeight - magnitude * 3);
+                // low pass filter to smooth the values
+                magnitude =  ( lastMag + magnitude ) / 2
+                lastMag = magnitude
 
+                pixelList.push(magnitude)
 //console.log(`Mag: ${ magnitude }`);
 
                 if (magnitude > magnitudelimitLow) magnitudeLimit = Math.max(magnitudelimitLow, magnitudeLimit + ((magnitude - magnitudeLimit) / 6));
