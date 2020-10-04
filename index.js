@@ -1,67 +1,133 @@
+
+// class FFT {
+//     constructor(n) {
+//         this.n = n;
+//         this.levels = -1;
+//         for (let i = 0; i < 32; i++) {
+//             if (1 << i == n) {
+//                 this.levels = i;
+//             }
+//         }
+//         if (this.levels == -1) {
+//             throw "must be a power of 2";
+//         }
+//         this.cosTable = new Float32Array(n / 2);
+//         this.sinTable = new Float32Array(n / 2);
+//         for (let i = 0; i < n / 2; i++) {
+//             this.cosTable[i] = Math.cos(2 * Math.PI * i / n);
+//             this.sinTable[i] = Math.sin(2 * Math.PI * i / n);
+//         }
+//     }
+//     forward(real, imag) {
+//         // permutation
+//         for (let i = 0; i < this.n; i++) {
+//             let j = this.reverseBits(i, this.levels);
+//             if (j > i) {
+//                 let temp = real[i];
+//                 real[i] = real[j];
+//                 real[j] = temp;
+//                 temp = imag[i];
+//                 imag[i] = imag[j];
+//                 imag[j] = temp;
+//             }
+//         }
+//         // radix-2 FFT
+//         for (let size = 2; size <= this.n; size *= 2) {
+//             const halfSize = size / 2;
+//             let step = this.n / size;
+//             for (let i = 0; i < this.n; i += size) {
+//                 for (let j = i, k = 0; j < i + halfSize; j++, k += step) {
+//                     let tmpRe = real[j + halfSize] * this.cosTable[k] +
+//                         imag[j + halfSize] * this.sinTable[k];
+//                     let tmpIm = -real[j + halfSize] * this.sinTable[k] +
+//                         imag[j + halfSize] * this.cosTable[k];
+//                     real[j + halfSize] = real[j] - tmpRe;
+//                     imag[j + halfSize] = imag[j] - tmpIm;
+//                     real[j] += tmpRe;
+//                     imag[j] += tmpIm;
+//                 }
+//             }
+//         }
+//     }
+
+//     reverseBits(x, bits) {
+//         let y = 0;
+//         for (let i = 0; i < bits; i++) {
+//             y = (y << 1) | (x & 1);
+//             x >>>= 1;
+//         }
+//         return y;
+//     }
+
+//     magnitude(real, imag){
+//         let mag = new Float32Array(this.n / 2);
+//         for(let i = 0;i< this.n;i ++) {
+//             mag[i] = Math.sqrt( real[i] * real[i] + imag[i] * imag[i] );
+//         }
+//         return mag;
+
+//     }
+// }
+
+
+
 class Decoder {
-    constructor() {
+    // drawSpectrum(audioSource) {
+    //     const canvasElement = document.getElementById('spectrogram')
+
+    //     var gc = this.graphicContext = canvasElement.getContext("2d");
+    //     var analyserNode = this._ctx.createAnalyser();
+    //     //     analyserNode.smoothingTimeConstant = 0;
+    //     audioSource.connect(analyserNode);
+    //     analyserNode.fftSize = 1024 * 8;
+
+    //     let frequencyBinCount = analyserNode.frequencyBinCount;
+    //     let sampleRate = this._ctx.sampleRate;
+    //     let fftBinSize = (sampleRate / 2) / frequencyBinCount;
+    //     var graphicWidth = parseInt(getComputedStyle(canvasElement).width, 10);
+    //     var graphicHeight = parseInt(getComputedStyle(canvasElement).height, 10);
+
+    //     let getCursorPosition = (canvas, event) => {
+    //         const rect = canvas.getBoundingClientRect()
+    //         const x = event.clientX - rect.left
+    //         const y = event.clientY - rect.top
+    //         console.log("x: " + x + " y: " + y)
+    //         const pos = graphicHeight - y;
+    //         let freq = pos * fftBinSize;
+    //         console.log(`freq ${freq}hz`)
+    //     }
+    //     canvasElement.onclick = e => {
+    //         getCursorPosition(canvasElement, e);
+    //     }
 
 
-    }
+    //     var fftData = new Float32Array(analyserNode.frequencyBinCount);
+    //     console.log(`Bin count: ${analyserNode.frequencyBinCount}`);
+    //     console.log(`GraphicsHeight: ${graphicHeight}`);
+    //     console.log(`GraphicsWidth: ${graphicWidth}`)
 
-    drawSpectrum(audioSource) {
-        const canvasElement = document.getElementById('spectrogram')
+    //     gc.fillStyle = '#000000';
 
- 
+    //     gc.fillRect(0, 0, graphicWidth, graphicHeight);
+    //     var pixel = gc.createImageData(1, 1);
+    //     pixel.data[3] = 255;
+    //     var draw = (() => {
+    //         var slideImage = gc.getImageData(0, 0, graphicWidth - 1, graphicHeight);
+    //         gc.putImageData(slideImage, 1, 0);
 
-        var gc = this.graphicContext = canvasElement.getContext("2d");
-        var analyserNode = this._ctx.createAnalyser();
-        //     analyserNode.smoothingTimeConstant = 0;
-        audioSource.connect(analyserNode);
-        analyserNode.fftSize = 1024 * 8;
+    //         analyserNode.getFloatFrequencyData(fftData);
 
-        let frequencyBinCount = analyserNode.frequencyBinCount;
-        let sampleRate = this._ctx.sampleRate;
-        let fftBinSize = (sampleRate / 2) / frequencyBinCount;
-        var graphicWidth = parseInt(getComputedStyle(canvasElement).width, 10);
-        var graphicHeight = parseInt(getComputedStyle(canvasElement).height, 10);
-
-        let getCursorPosition = (canvas, event) => {
-            const rect = canvas.getBoundingClientRect()
-            const x = event.clientX - rect.left
-            const y = event.clientY - rect.top
-            console.log("x: " + x + " y: " + y)
-            const pos = graphicHeight - y;
-            let freq = pos * fftBinSize;
-            console.log(`freq ${ freq }hz`)
-        }
-        canvasElement.onclick = e => {
-            getCursorPosition(canvasElement, e);
-        }
-
-
-        var fftData = new Float32Array(analyserNode.frequencyBinCount);
-        console.log(`Bin count: ${analyserNode.frequencyBinCount}`);
-        console.log(`GraphicsHeight: ${graphicHeight}`);
-        console.log(`GraphicsWidth: ${graphicWidth}`)
-
-        gc.fillStyle = '#000000';
-
-        gc.fillRect(0, 0, graphicWidth, graphicHeight);
-        var pixel = gc.createImageData(1, 1);
-        pixel.data[3] = 255;
-        var draw = (() => {
-            var slideImage = gc.getImageData(0, 0, graphicWidth - 1, graphicHeight);
-            gc.putImageData(slideImage, 1, 0);
-
-            analyserNode.getFloatFrequencyData(fftData);
-
-            for (var i = 0; i < graphicHeight; ++i) {
-                var n = Math.min(Math.max((fftData[i] + 55) * 4, 0), 255);
-                pixel.data[0] = n;
-                pixel.data[1] = n;
-                pixel.data[2] = n;
-                gc.putImageData(pixel, 0, graphicHeight - i);
-            }
-            requestAnimationFrame(draw);
-        });
-        draw();
-    }
+    //         for (var i = 0; i < graphicHeight; ++i) {
+    //             var n = Math.min(Math.max((fftData[i] + 55) * 4, 0), 255);
+    //             pixel.data[0] = n;
+    //             pixel.data[1] = n;
+    //             pixel.data[2] = n;
+    //             gc.putImageData(pixel, 0, graphicHeight - i);
+    //         }
+    //         requestAnimationFrame(draw);
+    //     });
+    //     draw();
+    // }
 
 
     play() {
@@ -73,18 +139,18 @@ class Decoder {
         let onGetUserMedia = (stream => {
             let audioSource = this._ctx.createMediaStreamSource(stream);
 
-            this.drawSpectrum(audioSource);
-      //         return;
+            //     this.drawSpectrum(audioSource);
+            //         return;
             let bufferSize = 256;
             let scriptNode = this._ctx.createScriptProcessor(bufferSize, 1, 1);
 
-            console.log(`ScriptButterSize: ${scriptNode.bufferSize}`);
+            audioSource.connect(scriptNode);
 
 
-            var analyserNode = this._ctx.createAnalyser();
-            audioSource.connect(analyserNode);
-            analyserNode.fftSize = bufferSize;
-            analyserNode.smoothingTimeConstant = 0;
+            // var analyserNode = this._ctx.createAnalyser();
+            // audioSource.connect(analyserNode);
+            // analyserNode.fftSize = 2048;
+            // analyserNode.smoothingTimeConstant = 0;
 
 
 
@@ -95,7 +161,7 @@ class Decoder {
             gc.fillStyle = '#000000';
             gc.fillRect(0, 0, graphicWidth, graphicHeight);
             let pixel = gc.createImageData(1, 1);
-            pixel.data[0] = 255;            
+            pixel.data[0] = 255;
             pixel.data[1] = 255;
             pixel.data[2] = 255;
             pixel.data[3] = 255;
@@ -106,30 +172,30 @@ class Decoder {
             const animate = (() => {
                 let pixels = pixelList.length;
                 if (pixels > 0) {
-                 let slideImage = gc.getImageData(0, 0, graphicWidth - pixels, graphicHeight);
- 
-                  gc.putImageData(slideImage, pixels, 0);
-                  gc.fillRect(0, 0, pixels, graphicHeight);
-                  for(let i = 0;i<pixels;i++) {
-                    let pos = pixelList.shift( );  
-                    gc.putImageData(pixel, i , graphicHeight - pos );
-                  }
-                }               
-                if (stopAnimation == false ) requestAnimationFrame(animate);
+                    let slideImage = gc.getImageData(0, 0, graphicWidth - pixels, graphicHeight);
+
+                    gc.putImageData(slideImage, pixels, 0);
+                    gc.fillRect(0, 0, pixels, graphicHeight);
+                    for (let i = 0; i < pixels; i++) {
+                        let pos = pixelList.shift();
+                        gc.putImageData(pixel, i, graphicHeight - pos);
+                    }
+                }
+                if (stopAnimation == false) requestAnimationFrame(animate);
             });
             requestAnimationFrame(animate);
 
-            let frequencyBinCount = analyserNode.frequencyBinCount;
+            // let frequencyBinCount = analyserNode.frequencyBinCount;
             let sampleRate = this._ctx.sampleRate;
-            let binSize = (sampleRate / 2) / frequencyBinCount;
+            // let binSize = (sampleRate / 2) / frequencyBinCount;
 
-            console.log(`frequencyBinCount: ${frequencyBinCount}`);
-            console.log(`sampleRate: ${sampleRate}`);
-            console.log(`binSize: ${binSize}Hz`);
-            console.log(`bufferSize: ${bufferSize / sampleRate}`);
-            console.log(`minDecibels ${analyserNode.minDecibels}`);
-            console.log(`maxDecibels ${analyserNode.maxDecibels}`);
-            analyserNode.connect(scriptNode);
+            // console.log(`frequencyBinCount: ${frequencyBinCount}`);
+            // console.log(`sampleRate: ${sampleRate}`);
+            // console.log(`binSize: ${binSize}Hz`);
+            // console.log(`bufferSize: ${bufferSize / sampleRate}`);
+            // console.log(`minDecibels ${analyserNode.minDecibels}`);
+            // console.log(`maxDecibels ${analyserNode.maxDecibels}`);
+            // analyserNode.connect(scriptNode);
 
             scriptNode.connect(this._ctx.destination);
 
@@ -224,8 +290,9 @@ class Decoder {
             };
             let magnitudelimitLow = 8.0;
             let magnitudeLimit = magnitudelimitLow;
-            let targetFrequency = 680;
-            let omega = (2 * Math.PI * (0.5 + ((bufferSize * targetFrequency) / sampleRate))) / bufferSize;
+            let targetFrequency = 750;
+            let k = Math.floor(0.5 + ((bufferSize * targetFrequency) / sampleRate)) 
+            let omega = (2 * Math.PI * k ) / bufferSize;
             let cosine = Math.cos(omega);
             let coeff = 2 * cosine;
             let Q0, Q1, Q2;
@@ -238,9 +305,9 @@ class Decoder {
 
             var lastChangeTime = this._ctx.currentTime;
             var lastFilteredChangeTime = lastChangeTime;
-            var avgDuration = Infinity;
+        //    var avgDuration = Infinity;
 
-            var counter = 0;
+        //    var counter = 0;
             var durationArray = [];
             var ditLength = 0.06;
             var dahLength = 3 * ditLength;
@@ -248,19 +315,45 @@ class Decoder {
             var currentText = "";
             var pauseDuration = ditLength;
 
-            var lastMag = 0;
+           var lastMag = 0;
+
+            const out = document.getElementById("out");
+
+
+     //       let fft = new FFT(256*8);
+
+     //       let buffer = new Array();
 
             scriptNode.onaudioprocess = audioProcessingEvent => {
-                counter += 1;
-
                 var inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-/*
-                var lastOutput = inputData[0];
-                for (var i = 0; i < bufferSize; i++) {
-                    inputData[i] = ( inputData[i] + lastOutput ) / 2;
-                    lastOutput = inputData[i];
-                }
-*/
+
+           //     buffer = buffer.concat(Array.from(inputData))
+              
+
+                // if (buffer.length == 256*8) {
+                //  var fftReal =  new Float32Array(buffer); 
+                //     buffer = new Array();
+                //  var fftIm = new Float32Array(256*8);
+
+            // //    fftReal = new Float32Array([1,1,1,1,0,0,0,0]);
+            // //    fftIm = new Float32Array(8);
+ 
+                //  fft.forward(fftReal,fftIm);
+                //  let mag = fft.magnitude(fftReal,fftIm);
+      
+                // let fftMax = Math.max(...mag)
+                // var fftData = new Float32Array(analyserNode.frequencyBinCount);
+                // analyserNode.getFloatFrequencyData(fftData);
+ //               console.log("m",fftMax)
+       //     }
+           //     debugger;
+                /*
+                                var lastOutput = inputData[0];
+                                for (var i = 0; i < bufferSize; i++) {
+                                    inputData[i] = ( inputData[i] + lastOutput ) / 2;
+                                    lastOutput = inputData[i];
+                                }
+                */
                 Q1 = 0;
                 Q2 = 0;
                 for (var i = 0; i < inputData.length; i++) {
@@ -268,14 +361,17 @@ class Decoder {
                     Q2 = Q1;
                     Q1 = Q0;
                 }
-                let magnitude = Math.sqrt( Q1 * Q1 + Q2 * Q2 - Q1 * Q2 * coeff )
+                let magnitude = Math.sqrt(Q1 * Q1 + Q2 * Q2 - Q1 * Q2 * coeff)
+              
+      //          console.log(magnitude,mag[4])
 
                 // low pass filter to smooth the values
-                magnitude =  ( lastMag + magnitude ) / 2
+                magnitude = (lastMag + magnitude) / 2
                 lastMag = magnitude
-
+                
+     //           console.log(magnitude)
                 pixelList.push(magnitude)
-//console.log(`Mag: ${ magnitude }`);
+                //console.log(`Mag: ${ magnitude }`);
 
                 if (magnitude > magnitudelimitLow) magnitudeLimit = Math.max(magnitudelimitLow, magnitudeLimit + ((magnitude - magnitudeLimit) / 6));
                 currentState = magnitude > magnitudeLimit * 0.6 ? morseState.HIGH : morseState.LOW;
@@ -287,9 +383,6 @@ class Decoder {
                 if (audioProcessingEvent.playbackTime - lastChangeTime > noiseTime) {
                     filteredState = currentState;
                 }
-
-                //    console.log("Filter:", filteredState)
-                //               if (currentState == morseState.HIGH) console.log(magnitude,"*"); else console.log(magnitude,"");
 
 
                 if (filteredState != lastFilteredState) {
@@ -307,9 +400,9 @@ class Decoder {
                         } else {
                             currentMorseString += "-";
                         }
-                       // console.log("***", dahLength, ditLength, duration, currentMorseString)
+                        // console.log("***", dahLength, ditLength, duration, currentMorseString)
                     } else { // end of low
-                     //   console.log("___", dahLength, ditLength, duration, currentMorseString)
+                        //   console.log("___", dahLength, ditLength, duration, currentMorseString)
                         //          console.log("LackDur",duration);
                         if (duration < ditLength * 2.7) {
                             pauseDuration = (5 * pauseDuration + duration) / 6;
@@ -323,6 +416,10 @@ class Decoder {
                             // word border
                             if (duration > ditLength * 5) {
                                 console.log(currentText);
+
+                                out.textContent += currentText + " ";
+                                out.scrollTop = out.scrollHeight;
+
                                 currentText = "";
                                 //                                console.log("Space");
                             }
@@ -338,7 +435,15 @@ class Decoder {
         });
         let onGetUserMediaError = (err => { console.error('Error connecting: ' + err); });
         if (navigator.mediaDevices) {
-            navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(onGetUserMedia, onGetUserMediaError);
+           // let supports = navigator.mediaDevices.getSupportedConstraints();
+          //  debugger;
+            navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false,
+                  }, 
+                video: false }).then(onGetUserMedia, onGetUserMediaError);
         } else {
             if (navigator.getUserMedia) {
                 navigator.getUserMedia({ audio: true, video: false }, onGetUserMedia, onGetUserMediaError);
@@ -354,8 +459,6 @@ document.addEventListener("DOMContentLoaded", function (event) {
     console.log("DOM Load");
     var decoder = new Decoder();
     document.getElementById("play").onclick = e => {
-        console.log("play!");
-        //        decoder.drawSpectrum( );
         decoder.play();
     }
 });
